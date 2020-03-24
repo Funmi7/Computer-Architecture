@@ -1,6 +1,11 @@
 """CPU functionality."""
 
 import sys
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+MUL = 0b10100010
+
 
 class CPU:
     """Main CPU class."""
@@ -14,29 +19,46 @@ class CPU:
     def ram_read(self, address):
         return self.ram[address]
 
-    def raw_write(self, address, value):
+    def ram_write(self, address, value):
         self.ram[address] = value
 
-    def load(self):
+    def load(self, prog_name):
         """Load a program into memory."""
+        try:
+            address = 0
+            prog_name = sys.argv[1]
+            with open(prog_name) as f:
+                for line in f:
+                    comment_split = line.split("#")[0]
+                    num = comment_split.strip()
+                
+                    if num == "":
+                        continue
 
-        address = 0
+                    val = int(num, 2)
+                    self.ram[address] = val
+                    address += 1
+                
+        except FileNotFoundError:
+            print("file not found")
+            sys.exit(2)
+
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
 
     def alu(self, op, reg_a, reg_b):
@@ -45,8 +67,12 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == MUL:
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
+
+        
 
     def trace(self):
         """
@@ -70,10 +96,8 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        HLT = 0b00000001
-        LDI = 0b10000010
-        PRN = 0b01000111
         running = True
+
         while running:
             ir = self.ram[self.pc]
             operand_a = self.ram_read(self.pc + 1)
@@ -82,6 +106,7 @@ class CPU:
             if ir == HLT:
                 running = False
 
+
             elif ir == LDI:
                 self.reg[operand_a] = operand_b
                 self.pc += 3
@@ -89,6 +114,11 @@ class CPU:
             elif ir == PRN:
                 print(self.reg[operand_a])
                 self.pc +=2
+            elif ir == MUL:
+                self.alu(ir, operand_a, operand_b)
+                self.pc += 3
+            else:
+                print(f"I did not understand that command")
+                sys.exit(1)
 
-
-
+print(sys.argv[1])
