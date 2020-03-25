@@ -6,6 +6,10 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
+
+sp = 7
 
 
 class CPU:
@@ -23,6 +27,9 @@ class CPU:
         self.branchtable[LDI] = self.handle_ldi
         self.branchtable[PRN] = self.handle_prn
         self.branchtable[MUL] = self.handle_mul
+        self.branchtable[PUSH] = self.handle_push
+        self.branchtable[POP] = self.handle_pop
+        self.reg[7] = 0xF4
 
     def handle_hlt(self):
         self.halted = True
@@ -43,6 +50,26 @@ class CPU:
         num_2 = self.ram_read(self.pc + 2)
         self.alu(MUL, num_1, num_2)
         self.pc +=3
+    
+    def handle_push(self):
+        # setup
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.reg[reg_num]
+
+        # push
+        self.reg[sp] -= 1
+        self.ram[self.reg[sp]] = value
+        self.pc += 2
+    
+    def handle_pop(self):
+        # setup
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram[self.reg[sp]]
+
+        # pop
+        self.reg[reg_num] = value
+        self.reg[sp] += 1
+        self.pc += 2
 
 
     def ram_read(self, address):
@@ -129,8 +156,6 @@ class CPU:
 
         while  not self.halted:
             ir = self.ram[self.pc]
-            # operand_a = self.ram_read(self.pc + 1)
-            # operand_b = self.ram_read(self.pc + 2)
 
             if ir == 0 or None:
                 print("I did not understand this command")
