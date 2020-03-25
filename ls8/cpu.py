@@ -1,6 +1,7 @@
 """CPU functionality."""
 
 import sys
+
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
@@ -15,6 +16,34 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.halted = False
+
+        self.branchtable = {}
+        self.branchtable[HLT] = self.handle_hlt
+        self.branchtable[LDI] = self.handle_ldi
+        self.branchtable[PRN] = self.handle_prn
+        self.branchtable[MUL] = self.handle_mul
+
+    def handle_hlt(self):
+        self.halted = True
+    
+    def handle_ldi(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[reg_num] = value
+        self.pc += 3
+    
+    def handle_prn(self):
+        reg_num = self.ram_read(self.pc + 1)
+        print(self.reg[reg_num])
+        self.pc += 2
+    
+    def handle_mul(self):
+        num_1 = self.ram_read(self.pc + 1)
+        num_2 = self.ram_read(self.pc + 2)
+        self.alu(MUL, num_1, num_2)
+        self.pc +=3
+
 
     def ram_read(self, address):
         return self.ram[address]
@@ -96,29 +125,18 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        running = True
+      
 
-        while running:
+        while  not self.halted:
             ir = self.ram[self.pc]
-            operand_a = self.ram_read(self.pc + 1)
-            operand_b = self.ram_read(self.pc + 2)
+            # operand_a = self.ram_read(self.pc + 1)
+            # operand_b = self.ram_read(self.pc + 2)
 
-            if ir == HLT:
-                running = False
-
-
-            elif ir == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
-
-            elif ir == PRN:
-                print(self.reg[operand_a])
-                self.pc +=2
-            elif ir == MUL:
-                self.alu(ir, operand_a, operand_b)
-                self.pc += 3
-            else:
-                print(f"I did not understand that command")
+            if ir == 0 or None:
+                print("I did not understand this command")
                 sys.exit(1)
+
+            self.branchtable[ir]()
+      
 
 print(sys.argv[1])
